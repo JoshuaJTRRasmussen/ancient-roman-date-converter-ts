@@ -1,4 +1,6 @@
 import { useState } from "react";
+import Header from "./Header";
+import FunFacts from "./FunFacts";
 
 //Don't believe in Modern Months
 
@@ -201,26 +203,6 @@ const daysOfTheWeek: {
   6: { modernDayName: "Saturday", romanDayName: "Dies Saturni" },
 };
 
-// const romanNumerals = new Map([
-//   [3, "III"],
-//   [4, "IV"],
-//   [5, "V"],
-//   [6, "VI"],
-//   [7, "VII"],
-//   [8, "VIII"],
-//   [9, "IX"],
-//   [10, "X"],
-//   [11, "XI"],
-//   [12, "XII"],
-//   [13, "XIII"],
-//   [14, "XIV"],
-//   [15, "XV"],
-//   [16, "XVI"],
-//   [17, "XVII"],
-//   [18, "XVIII"],
-//   [19, "XIX"],
-// ]);
-
 const romanMatrix = [
   [1000, "M"],
   [900, "CM"],
@@ -250,10 +232,6 @@ function convertToRoman(num: number): string {
   }
   return "";
 }
-
-// function convertedRomanNumeral(num: number) {
-//   return romanNumerals.get(num);
-// }
 
 function convertedMonth(month: ModernMonths, day: number) {
   const currentMonth = romanCalendarMonths[month];
@@ -327,7 +305,20 @@ function convertedDate(month: ModernMonths, day: number) {
 type Era = "C.E." | "B.C.E.";
 
 function convertedYear(year: number, era: Era) {
-  return era === "C.E." ? Number(year) + 753 : Number(year) - 753;
+  let calculatedYear;
+  let preRome = false;
+  const error = year === 0;
+
+  if (era === "C.E.") {
+    calculatedYear = Number(year + 753);
+  } else if (era === "B.C.E." && year >= 754) {
+    calculatedYear = year - 753;
+    preRome = true;
+  } else {
+    calculatedYear = Math.abs(Number(year) - 754);
+  }
+
+  return { calculatedYear, preRome, error };
 }
 
 //Fixing February
@@ -421,7 +412,7 @@ export default function App() {
 
   const timeMessage = getTimeMessage(selectedDateString);
   const convertedDateResult = convertedDate(selectedMonth, selectedDate);
-  const convertedYearResult = convertedYear(selectedYear, era);
+  const { calculatedYear, preRome } = convertedYear(selectedYear, era);
   const { latinMonthResult, postIdes } = convertedMonth(
     selectedMonth,
     selectedDate
@@ -431,74 +422,72 @@ export default function App() {
     : selectedMonth;
 
   return (
-    <div className="App">
-      <h1>Ancient Roman Date Converter</h1>
-      <h2>
-        <em>carpe diem!</em>
-      </h2>
-      <select
-        value={selectedMonth}
-        onChange={(e) => setSelectedMonth(e.target.value as ModernMonths)}
-      >
-        {modernMonths.map((month) => (
-          <option key={month} value={month}>
-            {month}
-          </option>
-        ))}
-      </select>
-      <select
-        value={selectedDate}
-        onChange={(e) => setselectedDate(Number(e.target.value))}
-      >
-        {Array.from(
-          {
-            length: romanCalendarMonths[selectedMonth].monthLength,
-          },
-          (_, i) => i + 1
-        ).map((num) => (
-          <option key={num} value={num}>
-            {num}
-          </option>
-        ))}
-      </select>
-      <input
-        type="number"
-        value={selectedYear}
-        onChange={(e) => setSelectedYear(Number(e.target.value))}
-      />
-      <select value={era} onChange={(e) => setEra(e.target.value as Era)}>
-        <option>C.E.</option>
-        <option>B.C.E.</option>
-      </select>
-      <h3>
-        {`
+    <>
+      <Header />
+      <div>
+        <select
+          value={selectedMonth}
+          onChange={(e) => setSelectedMonth(e.target.value as ModernMonths)}
+        >
+          {modernMonths.map((month) => (
+            <option key={month} value={month}>
+              {month}
+            </option>
+          ))}
+        </select>
+        <select
+          value={selectedDate}
+          onChange={(e) => setselectedDate(Number(e.target.value))}
+        >
+          {Array.from(
+            {
+              length: romanCalendarMonths[selectedMonth].monthLength,
+            },
+            (_, i) => i + 1
+          ).map((num) => (
+            <option key={num} value={num}>
+              {num}
+            </option>
+          ))}
+        </select>
+        <input
+          type="number"
+          min={1}
+          value={selectedYear}
+          onChange={(e) => setSelectedYear(Number(e.target.value))}
+        />
+
+        <select value={era} onChange={(e) => setEra(e.target.value as Era)}>
+          <option>C.E.</option>
+          <option>B.C.E.</option>
+        </select>
+
+        <h3>
+          {`
         ${timeMessage.latin} ${
-          daysOfTheWeek[selectedDateStringDay].romanDayName
-        },
+            daysOfTheWeek[selectedDateStringDay].romanDayName
+          },
         ${convertedDateResult.latin}
-        ${latinMonthResult}, ${convertToRoman(convertedYearResult)}
-        A.U.C.`}
-      </h3>
-      <p>
-        {`
+        ${latinMonthResult},
+        ${preRome ? "anno" : ""} ${convertToRoman(calculatedYear)} ${
+            preRome ? "ante Urbem condendam." : "A.U.C."
+          }`}
+        </h3>
+        <p>
+          {`
         ${timeMessage.english}
         ${daysOfTheWeek[selectedDateStringDay].modernDayName},
         ${
           convertedDateResult.english
-        } of ${englishDisplayMonth}, ${convertedYearResult.toLocaleString()}
-        years since the founding of Rome.`}
-      </p>
-      {selectedMonth === "March" && Number(selectedDate) === 15 && (
-        <h1>&quot;Beware the Ides of March!&quot;</h1>
-      )}
-      <p>
-        The Ancient Roman calendar counted inclusively up to the three marker
-        days in each month: the Kalends (the first), the nones (the 5th or 7th
-        depending on the month), and the ides (the 13th or 15th depending on the
-        month). March 13, for example, would be considered &quot;3 days before
-        the Ides of March,&quot; and March 14 would be called &quot;the day
-        before the Ides of March.&quot;
-      </p>
-    </div>
+        } of ${englishDisplayMonth}, ${calculatedYear.toLocaleString()} ${
+            calculatedYear === 1 ? "year" : "years"
+          } ${preRome ? "before" : "since"} the founding of Rome.`}
+        </p>
+        {selectedMonth === "March" && Number(selectedDate) === 15 && (
+          <h1>&quot;Beware the Ides of March!&quot;</h1>
+        )}
+      </div>
+      <FunFacts />
+    </>
   );
 }
