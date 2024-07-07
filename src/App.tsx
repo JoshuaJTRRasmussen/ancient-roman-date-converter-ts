@@ -201,47 +201,78 @@ const daysOfTheWeek: {
   6: { modernDayName: "Saturday", romanDayName: "Dies Saturni" },
 };
 
-const romanNumerals = new Map([
-  [3, "III"],
-  [4, "IV"],
-  [5, "V"],
-  [6, "VI"],
-  [7, "VII"],
-  [8, "VIII"],
-  [9, "IX"],
+// const romanNumerals = new Map([
+//   [3, "III"],
+//   [4, "IV"],
+//   [5, "V"],
+//   [6, "VI"],
+//   [7, "VII"],
+//   [8, "VIII"],
+//   [9, "IX"],
+//   [10, "X"],
+//   [11, "XI"],
+//   [12, "XII"],
+//   [13, "XIII"],
+//   [14, "XIV"],
+//   [15, "XV"],
+//   [16, "XVI"],
+//   [17, "XVII"],
+//   [18, "XVIII"],
+//   [19, "XIX"],
+// ]);
+
+const romanMatrix = [
+  [1000, "M"],
+  [900, "CM"],
+  [500, "D"],
+  [400, "CD"],
+  [100, "C"],
+  [90, "XC"],
+  [50, "L"],
+  [40, "XL"],
   [10, "X"],
-  [11, "XI"],
-  [12, "XII"],
-  [13, "XIII"],
-  [14, "XIV"],
-  [15, "XV"],
-  [16, "XVI"],
-  [17, "XVII"],
-  [18, "XVIII"],
-  [19, "XIX"],
-]);
+  [9, "IX"],
+  [5, "V"],
+  [4, "IV"],
+  [1, "I"],
+] as const;
 
 //Conversion functions
 
-function convertedRomanNumeral(num: number) {
-  return romanNumerals.get(num);
+function convertToRoman(num: number): string {
+  if (num === 0) {
+    return "";
+  }
+  for (let i = 0; i < romanMatrix.length; i++) {
+    if (num >= romanMatrix[i][0]) {
+      return romanMatrix[i][1] + convertToRoman(num - romanMatrix[i][0]);
+    }
+  }
+  return "";
 }
+
+// function convertedRomanNumeral(num: number) {
+//   return romanNumerals.get(num);
+// }
 
 function convertedMonth(month: ModernMonths, day: number) {
   const currentMonth = romanCalendarMonths[month];
-  const displayMonth =
-    day > currentMonth.ides
-      ? romanCalendarMonths[currentMonth.nextMonth]
-      : currentMonth;
+  const postIdes = day > currentMonth.ides;
+  const latinDisplayMonth = postIdes
+    ? romanCalendarMonths[currentMonth.nextMonth]
+    : currentMonth;
   const {
     monthStem,
     nones,
     ides,
     caseEndings: { ablative, accusative },
-  } = displayMonth;
+  } = latinDisplayMonth;
   const ending =
     day == 1 || day == nones || day == ides ? ablative : accusative;
-  return monthStem + ending;
+  return {
+    latinMonthResult: monthStem + ending,
+    postIdes,
+  };
 }
 
 function convertedDate(month: ModernMonths, day: number) {
@@ -274,17 +305,17 @@ function convertedDate(month: ModernMonths, day: number) {
     };
   if (day < nones)
     return {
-      latin: `a.d. ${convertedRomanNumeral(nones - day + 1)} Nonas`,
+      latin: `a.d. ${convertToRoman(nones - day + 1)} Nonas`,
       english: `${nones - day + 1} days before the Nones`,
     };
   if (day < ides)
     return {
-      latin: `a.d. ${convertedRomanNumeral(ides - day + 1)} Idus`,
+      latin: `a.d. ${convertToRoman(ides - day + 1)} Idus`,
       english: `${ides - day + 1} days before the Ides`,
     };
   if (day < monthLength)
     return {
-      latin: `a.d. ${convertedRomanNumeral(monthLength - day + 2)} Kalendas`,
+      latin: `a.d. ${convertToRoman(monthLength - day + 2)} Kalendas`,
       english: `${monthLength - day + 2} days before the Kalends`,
     };
   return {
@@ -391,6 +422,13 @@ export default function App() {
   const timeMessage = getTimeMessage(selectedDateString);
   const convertedDateResult = convertedDate(selectedMonth, selectedDate);
   const convertedYearResult = convertedYear(selectedYear, era);
+  const { latinMonthResult, postIdes } = convertedMonth(
+    selectedMonth,
+    selectedDate
+  );
+  const englishDisplayMonth = postIdes
+    ? romanCalendarMonths[selectedMonth].nextMonth
+    : selectedMonth;
 
   return (
     <div className="App">
@@ -438,7 +476,7 @@ export default function App() {
           daysOfTheWeek[selectedDateStringDay].romanDayName
         },
         ${convertedDateResult.latin}
-        ${convertedMonth(selectedMonth, selectedDate)}, ${convertedYearResult}
+        ${latinMonthResult}, ${convertToRoman(convertedYearResult)}
         A.U.C.`}
       </h3>
       <p>
@@ -447,7 +485,7 @@ export default function App() {
         ${daysOfTheWeek[selectedDateStringDay].modernDayName},
         ${
           convertedDateResult.english
-        } of ${selectedMonth}, ${convertedYearResult.toLocaleString()}
+        } of ${englishDisplayMonth}, ${convertedYearResult.toLocaleString()}
         years since the founding of Rome.`}
       </p>
       {selectedMonth === "March" && Number(selectedDate) === 15 && (
